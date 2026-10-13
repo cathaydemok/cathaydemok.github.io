@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>登打輔助 — 類別日期快速輸入</title>
+<style>
+  :root{
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+
+    --bg: #F6F5F2;
+    --panel: #FFFFFF;
+    --ink: #1C1E1B;
+    --ink-soft: #5B5E58;
+    --line: #DEDCD4;
+    --accent: #2F5D4F;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #E4EDE8;
+    --a-color: #df503b;
+    --d-color: #2F5D4F;
+    --h-color: #8A5A2B;
+    --j-color: #3C5A8A;
+    --danger: #A33B2E;
+    --mono: "SF Mono", "Consolas", "Menlo", monospace;
+    --sans: -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg: #17191A;
+      --panel: #1F2224;
+      --ink: #EDEEEA;
+      --ink-soft: #9A9D97;
+      --line: #35383A;
+      --accent: #5B9A82;
+      --accent-ink: #0F1512;
+      --accent-soft: #223029;
+      --a-color: #df503b;
+      --d-color: #6DA78E;
+      --h-color: #C68A52;
+      --j-color: #7893C4;
+      --danger: #D4695A;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: #17191A;
+    --panel: #1F2224;
+    --ink: #EDEEEA;
+    --ink-soft: #9A9D97;
+    --line: #35383A;
+    --accent: #5B9A82;
+    --accent-ink: #0F1512;
+    --accent-soft: #223029;
+    --a-color: #df503b;
+    --d-color: #6DA78E;
+    --h-color: #C68A52;
+    --j-color: #7893C4;
+    --danger: #D4695A;
+  }
+  html{ scroll-padding-top: env(safe-area-inset-top, 0px); }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  body{
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    min-height: 100%;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  html, body{ height: 100%; }
+
+  .wrap{
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 28px 20px calc(40px + env(safe-area-inset-bottom, 0px));
+  }
+
+  header{
+    margin-bottom: 22px;
+  }
+  header h1{
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  header p{
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    margin-top: 4px;
+  }
+
+  .panel{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  .cat-row{
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .cat-btn{
+    flex: 1;
+    border: 1.5px solid var(--line);
+    background: transparent;
+    color: var(--ink);
+    border-radius: 10px;
+    padding: 11px 6px;
+    font-size: 14.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .12s ease, border-color .12s ease, color .12s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .cat-btn .code{
+    font-family: var(--mono);
+    font-size: 15px;
+  }
+  .cat-btn .label{
+    font-size: 11px;
+    color: var(--ink-soft);
+    font-weight: 500;
+  }
+  .cat-btn[data-active="true"]{
+    color: var(--accent-ink);
+    border-color: transparent;
+  }
+  .cat-btn[data-active="true"] .label{ color: var(--accent-ink); opacity: .85; }
+  .cat-btn[data-cat="A"][data-active="true"]{ background: var(--a-color); }  
+  .cat-btn[data-cat="D"][data-active="true"]{ background: var(--d-color); }
+  .cat-btn[data-cat="H"][data-active="true"]{ background: var(--h-color); }
+  .cat-btn[data-cat="J"][data-active="true"]{ background: var(--j-color); }
+
+  .date-row{
+    display: flex;
+    gap: 8px;
+  }
+  .date-input{
+    flex: 1;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 13px 14px;
+    font-size: 17px;
+    font-family: var(--mono);
+    letter-spacing: 0.04em;
+    background: var(--bg);
+    color: var(--ink);
+    outline: none;
+    transition: border-color .12s ease;
+  }
+  .date-input:focus{
+    border-color: var(--accent);
+  }
+  .date-input.err{
+    border-color: var(--danger);
+  }
+  .add-btn{
+    border: none;
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-radius: 10px;
+    padding: 0 20px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .add-btn:active{ opacity: .85; }
+
+  .hint{
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 9px;
+  }
+  .hint b{ color: var(--ink); font-weight: 600; }
+
+  .mode-row{
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .mode-btn{
+    flex: 1;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--ink-soft);
+    border-radius: 999px;
+    padding: 7px 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .12s ease, color .12s ease, border-color .12s ease;
+  }
+  .mode-btn[data-active="true"]{
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: transparent;
+  }
+
+  .dual-date-row{
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .date-field{
+    flex: 1;
+    min-width: 0;
+  }
+  .date-field label{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 5px;
+  }
+  .auto-badge{
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 1px 7px;
+    border-radius: 999px;
+  }
+  .date-field .date-input{
+    width: 100%;
+  }
+  .date-field .date-input[data-auto="true"]{
+    background: var(--accent-soft);
+  }
+  .add-btn.full-width{
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .cat-btn.disabled-mode-hint{
+    opacity: .45;
+  }
+  .mode-btn[disabled]{
+    opacity: .4;
+    cursor: not-allowed;
+  }
+
+  .ym-row{
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .ym-field{
+    flex: 1;
+  }
+  .ym-field label{
+    display: block;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    margin-bottom: 5px;
+  }
+  .ym-input{
+    width: 100%;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 16px;
+    font-family: var(--mono);
+    letter-spacing: 0.04em;
+    background: var(--bg);
+    color: var(--ink);
+    outline: none;
+    transition: border-color .12s ease;
+  }
+  .ym-input:focus{
+    border-color: var(--accent);
+  }
+  .ym-input.err{
+    border-color: var(--danger);
+  }
+
+  .lock-indicator{
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    display: inline-block;
+    transition: color .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .lock-indicator[data-locked="true"]{
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .paste-textarea{
+    width: 100%;
+    min-height: 110px;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-family: var(--mono);
+    line-height: 1.6;
+    background: var(--bg);
+    color: var(--ink);
+    outline: none;
+    resize: vertical;
+    transition: border-color .12s ease;
+  }
+  .paste-textarea:focus{
+    border-color: var(--accent);
+  }
+  .paste-actions{
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
+  .paste-actions .add-btn{
+    padding: 11px 22px;
+  }
+
+  .paste-preview{
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .paste-preview-stat{
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .stat-num{
+    font-family: var(--mono);
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .stat-label{
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .paste-preview-range{
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+  .paste-compare{
+    margin-top: 12px;
+    background: var(--accent-soft);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 12.5px;
+    color: var(--accent);
+    line-height: 1.6;
+  }
+
+  .list-section h2{
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .count-pill{
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    font-family: var(--mono);
+  }
+
+  .entry-list{
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .empty-state{
+    text-align: center;
+    padding: 30px 10px;
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    border: 1.5px dashed var(--line);
+    border-radius: 12px;
+  }
+
+  .entry{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 9px 10px;
+  }
+  .entry-cat{
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 13px;
+    color: #fff;
+    flex-shrink: 0;
+    cursor: pointer;
+    border: none;
+  }
+  .entry-cat[data-cat="A"]{ background: var(--a-color); }
+  .entry-cat[data-cat="D"]{ background: var(--d-color); }
+  .entry-cat[data-cat="H"]{ background: var(--h-color); }
+  .entry-cat[data-cat="J"]{ background: var(--j-color); }
+
+  .entry-dates{
+    font-family: var(--mono);
+    font-size: 14.5px;
+    flex: 1;
+    letter-spacing: 0.02em;
+  }
+  .entry-dates .sep{ color: var(--ink-soft); padding: 0 4px; }
+
+  .entry-del{
+    border: none;
+    background: transparent;
+    color: var(--ink-soft);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .entry-del:active{ background: var(--line); }
+
+  @keyframes dupFlash{
+    0%   { background: var(--danger); border-color: var(--danger); }
+    100% { background: var(--bg); border-color: var(--line); }
+  }
+  .entry.flash-dup{
+    animation: dupFlash 1.1s ease-out;
+  }
+
+  .footer-actions{
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .ghost-btn{
+    flex: 1;
+    border: 1.5px solid var(--line);
+    background: transparent;
+    color: var(--ink);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .ghost-btn.primary{
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-color: transparent;
+  }
+  .ghost-btn:active{ opacity: .85; }
+
+  .toast{
+    position: fixed;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    background: var(--ink);
+    color: var(--bg);
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease, transform .2s ease;
+    z-index: 50;
+  }
+  .toast.show{
+    opacity: 1;
+    transform: translateX(-50%) translateY(-4px);
+  }
+
+  select.cat-mini{
+    font-family: var(--mono);
+    font-size: 13px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--panel);
+    color: var(--ink);
+    padding: 2px 4px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>登打輔助工具</h1>
+    <p>固定類別，連續輸入日期，最後整批複製回系統</p>
+  </header>
+
+  <div class="panel">
+    <div class="cat-row" id="catRow">
+      <button class="cat-btn" data-cat="A">
+        <span class="code">A</span>
+        <span class="label">住院</span>
+      </button>
+      <button class="cat-btn" data-cat="D" data-active="true">
+        <span class="code">D</span>
+        <span class="label">門診</span>
+      </button>
+      <button class="cat-btn" data-cat="H">
+        <span class="code">H</span>
+        <span class="label">化療</span>
+      </button>
+      <button class="cat-btn" data-cat="J">
+        <span class="code">J</span>
+        <span class="label">放射</span>
+      </button>
+    </div>
+
+    <div class="mode-row" id="modeRow">
+      <button class="mode-btn" data-mode="single" data-active="true">逐筆輸入</button>
+      <button class="mode-btn" data-mode="range">區間展開</button>
+      <button class="mode-btn" data-mode="quick">固定年月</button>
+    </div>
+
+    <!-- 逐筆輸入：比照現行系統欄位，類別（上方選取）+ 起日 + 迄日
+         D/H/J：起日打完自動帶入迄日（規定同一天）
+         A（住院）：起訖日各自獨立輸入，不自動帶入 -->
+    <div id="singleSection">
+      <div class="dual-date-row">
+        <div class="date-field">
+          <label for="startInput">起日</label>
+          <input
+            type="text"
+            inputmode="numeric"
+            class="date-input"
+            id="startInput"
+            placeholder="1150101"
+            maxlength="7"
+            autocomplete="off"
+          />
+        </div>
+        <div class="date-field">
+          <label for="endInput">迄日 <span class="auto-badge" id="endAutoBadge">自動帶入</span></label>
+          <input
+            type="text"
+            inputmode="numeric"
+            class="date-input"
+            id="endInput"
+            placeholder="1150101"
+            maxlength="7"
+            autocomplete="off"
+          />
+        </div>
+      </div>
+      <button class="add-btn full-width" id="singleAddBtn">加入</button>
+      <div class="hint" id="singleHint">目前類別：<b>D 門診</b> ・ 起迄日相同，打完起日按 <b>Enter</b> 直接加入</div>
+    </div>
+
+    <!-- 區間展開：連續多天同一類別，一次輸入起訖日自動展開成每日一筆 -->
+    <div id="rangeSection" style="display:none;">
+      <div class="date-row">
+        <input
+          type="text"
+          inputmode="numeric"
+          class="date-input"
+          id="rangeInput"
+          placeholder="1150101-1150110"
+          maxlength="15"
+          autocomplete="off"
+        />
+        <button class="add-btn" id="rangeAddBtn">加入</button>
+      </div>
+      <div class="hint">輸入「起日-訖日」，系統自動展開成每日一筆（每筆起訖日相同）</div>
+    </div>
+
+    <!-- 固定年月模式（智慧判斷：打完整日期自動鎖定年月，之後只打天數即可） -->
+    <div id="quickSection" style="display:none;">
+      <div class="lock-indicator" id="lockIndicator">尚未鎖定年月</div>
+      <div class="date-row">
+        <input
+          type="text"
+          inputmode="numeric"
+          class="date-input"
+          id="quickDaysInput"
+          placeholder="1150101"
+          autocomplete="off"
+        />
+        <button class="add-btn" id="quickAddBtn">加入</button>
+      </div>
+      <div class="hint" id="quickHintText">打完整日期（<b>1150101</b>）會自動鎖定年月；之後只打天數（<b>02 05 09</b>）就自動套用，換月份再打一次完整日期即可</div>
+    </div>
+  </div>
+
+  <div class="panel list-section">
+    <h2>
+      已加入清單
+      <span class="count-pill" id="countPill">0 筆</span>
+    </h2>
+    <div class="entry-list" id="entryList">
+      <div class="empty-state" id="emptyState">還沒有資料 — 選好類別，開始打日期</div>
+    </div>
+
+    <div class="footer-actions">
+      <button class="ghost-btn" id="clearBtn">清空全部</button>
+      <button class="ghost-btn primary" id="copyBtn">複製整批文字</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  var CAT_NAMES = { A: '住院', D: '門診', H: '化療', J: '放射' };
+  // 起迄日是否固定相同：A（住院）起訖日可能不同，不自動帶入；D/H/J 規定同一天，自動帶入
+  var SAME_DAY_CATS = { D: true, H: true, J: true, A: false };
+
+  var state = {
+    currentCat: 'D',
+    mode: 'single', // 'single' | 'range' | 'quick'
+    lockedYear: null,  // 3碼民國年字串，例如 '115'；打過一次完整日期後自動設定
+    lockedMonth: null, // 2碼月份字串，例如 '01'
+    entries: [] // {cat, start, end}
+  };
+
+  var catRow = document.getElementById('catRow');
+  var modeRow = document.getElementById('modeRow');
+  var singleSection = document.getElementById('singleSection');
+  var rangeSection = document.getElementById('rangeSection');
+  var quickSection = document.getElementById('quickSection');
+
+  var startInput = document.getElementById('startInput');
+  var endInput = document.getElementById('endInput');
+  var endAutoBadge = document.getElementById('endAutoBadge');
+  var singleAddBtn = document.getElementById('singleAddBtn');
+  var singleHint = document.getElementById('singleHint');
+
+  var rangeInput = document.getElementById('rangeInput');
+  var rangeAddBtn = document.getElementById('rangeAddBtn');
+
+  var lockIndicator = document.getElementById('lockIndicator');
+  var quickDaysInput = document.getElementById('quickDaysInput');
+  var quickAddBtn = document.getElementById('quickAddBtn');
+
+  var entryList = document.getElementById('entryList');
+  var emptyState = document.getElementById('emptyState');
+  var countPill = document.getElementById('countPill');
+  var clearBtn = document.getElementById('clearBtn');
+  var copyBtn = document.getElementById('copyBtn');
+  var toast = document.getElementById('toast');
+
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function(){
+      toast.classList.remove('show');
+    }, 1600);
+  }
+
+  function setCat(cat){
+    state.currentCat = cat;
+    Array.prototype.forEach.call(catRow.querySelectorAll('.cat-btn'), function(btn){
+      btn.setAttribute('data-active', btn.getAttribute('data-cat') === cat ? 'true' : 'false');
+    });
+
+    var sameDay = SAME_DAY_CATS[cat];
+
+    if(sameDay){
+      endAutoBadge.style.display = '';
+      endInput.setAttribute('data-auto', 'true');
+      singleHint.innerHTML = '目前類別：<b>' + cat + ' ' + CAT_NAMES[cat] + '</b> ・ 起迄日相同，打完起日按 <b>Enter</b> 直接加入';
+    } else {
+      endAutoBadge.style.display = 'none';
+      endInput.removeAttribute('data-auto');
+      singleHint.innerHTML = '目前類別：<b>' + cat + ' ' + CAT_NAMES[cat] + '</b> ・ 起訖日需分別輸入（住院日不一定相同）';
+    }
+
+    // 住院（A）起訖日不固定相同，不適合用「展開/固定年月」這種假設同一天的批次模式
+    // 切到A時強制回到逐筆模式，並停用另外兩個模式按鈕
+    var batchModesAllowed = (cat !== 'A');
+    Array.prototype.forEach.call(modeRow.querySelectorAll('.mode-btn'), function(btn){
+      var m = btn.getAttribute('data-mode');
+      if(m === 'range' || m === 'quick'){
+        btn.disabled = !batchModesAllowed;
+      }
+    });
+    if(!batchModesAllowed && state.mode !== 'single'){
+      setMode('single');
+    }
+  }
+
+  catRow.addEventListener('click', function(e){
+    var btn = e.target.closest('.cat-btn');
+    if(!btn) return;
+    setCat(btn.getAttribute('data-cat'));
+    startInput.focus();
+  });
+
+  function setMode(mode){
+    state.mode = mode;
+    Array.prototype.forEach.call(modeRow.querySelectorAll('.mode-btn'), function(btn){
+      btn.setAttribute('data-active', btn.getAttribute('data-mode') === mode ? 'true' : 'false');
+    });
+
+    singleSection.style.display = 'none';
+    rangeSection.style.display = 'none';
+    quickSection.style.display = 'none';
+
+    if(mode === 'range'){
+      rangeSection.style.display = '';
+      rangeInput.focus();
+    } else if(mode === 'quick'){
+      quickSection.style.display = '';
+      updateLockIndicator();
+      quickDaysInput.focus();
+    } else {
+      singleSection.style.display = '';
+      startInput.focus();
+    }
+  }
+
+  modeRow.addEventListener('click', function(e){
+    var btn = e.target.closest('.mode-btn');
+    if(!btn || btn.disabled) return;
+    setMode(btn.getAttribute('data-mode'));
+  });
+
+  function isValidDate(str){
+    // 民國年日期格式 民國年(2-3碼) + 月(2碼) + 日(2碼)，簡化為7碼數字檢查
+    return /^\d{7}$/.test(str);
+  }
+
+  function addEntry(cat, startStr, endStr){
+    state.entries.push({ cat: cat, start: startStr, end: endStr });
+  }
+
+  // 起訖日相同的情境（區間展開/固定年月批次模式都只產生同一天）
+  function addSingleDate(cat, dateStr){
+    addEntry(cat, dateStr, dateStr);
+  }
+
+  // 判斷「同類別 + 同日期」是否已存在；不同類別同一天不算重複
+  function findDuplicateIndex(cat, dateStr){
+    for(var i = 0; i < state.entries.length; i++){
+      if(state.entries[i].cat === cat && state.entries[i].start === dateStr){
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  function highlightEntry(idx){
+    var row = entryList.querySelector('[data-idx="' + idx + '"]');
+    if(!row) return;
+    row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    row.classList.remove('flash-dup');
+    // 強制 reflow 讓動畫可以重新觸發
+    void row.offsetWidth;
+    row.classList.add('flash-dup');
+  }
+
+  function expandRange(cat, startStr, endStr){
+    // 嘗試以 民國年(3碼)月(2碼)日(2碼) 解析
+    if(startStr.length !== 7 || endStr.length !== 7){
+      return false;
+    }
+    var sYear = parseInt(startStr.slice(0,3),10);
+    var sMonth = parseInt(startStr.slice(3,5),10);
+    var sDay = parseInt(startStr.slice(5,7),10);
+    var eYear = parseInt(endStr.slice(0,3),10);
+    var eMonth = parseInt(endStr.slice(3,5),10);
+    var eDay = parseInt(endStr.slice(5,7),10);
+
+    var startDate = new Date(1911 + sYear, sMonth - 1, sDay);
+    var endDate = new Date(1911 + eYear, eMonth - 1, eDay);
+
+    if(isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return false;
+    if(startDate > endDate) return false;
+
+    var diffDays = Math.round((endDate - startDate) / 86400000);
+    if(diffDays > 366) return false; // 安全上限，避免誤輸入年份產生超量資料
+
+    var cur = new Date(startDate);
+    var candidates = [];
+    while(cur <= endDate){
+      var roc = cur.getFullYear() - 1911;
+      var mm = String(cur.getMonth() + 1).padStart(2,'0');
+      var dd = String(cur.getDate()).padStart(2,'0');
+      var ds = String(roc).padStart(3,'0') + mm + dd;
+      candidates.push(ds);
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    var addedCount = 0;
+    var skippedCount = 0;
+    candidates.forEach(function(ds){
+      // 同類別同日期已存在（含這批展開過程中剛加入的）就跳過，避免重複
+      if(findDuplicateIndex(cat, ds) !== -1){
+        skippedCount++;
+        return;
+      }
+      addSingleDate(cat, ds);
+      addedCount++;
+    });
+
+    return { ok: true, added: addedCount, skipped: skippedCount };
+  }
+
+  function flashError(el){
+    var target = el || startInput;
+    target.classList.add('err');
+    setTimeout(function(){ target.classList.remove('err'); }, 400);
+  }
+
+  // ---- 逐筆輸入：類別 + 起日 + 迄日（比照現行系統欄位）----
+
+  function handleSingleAdd(){
+    var startRaw = startInput.value.trim();
+    var endRaw = endInput.value.trim();
+
+    if(!isValidDate(startRaw)){
+      flashError(startInput);
+      showToast('起日需為7碼數字，例如 1150101');
+      return;
+    }
+    if(!isValidDate(endRaw)){
+      flashError(endInput);
+      showToast('迄日需為7碼數字，例如 1150101');
+      return;
+    }
+
+    var dupIdx = findDuplicateIndex(state.currentCat, startRaw);
+    if(dupIdx !== -1){
+      flashError(startInput);
+      showToast('「' + state.currentCat + ' ' + startRaw + '」已經加入過了，不能重複');
+      highlightEntry(dupIdx);
+      return;
+    }
+
+    addEntry(state.currentCat, startRaw, endRaw);
+
+    startInput.value = '';
+    endInput.value = '';
+    startInput.classList.remove('err');
+    endInput.classList.remove('err');
+    render();
+    startInput.focus();
+  }
+
+  // D/H/J 規定起迄日相同：打起日的當下即時帶入迄日
+  startInput.addEventListener('input', function(){
+    if(SAME_DAY_CATS[state.currentCat]){
+      endInput.value = startInput.value;
+    }
+  });
+
+  startInput.addEventListener('keydown', function(e){
+    if(e.key !== 'Enter') return;
+    e.preventDefault();
+    if(SAME_DAY_CATS[state.currentCat]){
+      // 迄日已自動帶入，直接送出
+      handleSingleAdd();
+    } else {
+      // 住院類別起訖日需分別輸入，Enter先跳到迄日欄位
+      endInput.focus();
+    }
+  });
+
+  endInput.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      handleSingleAdd();
+    }
+  });
+
+  singleAddBtn.addEventListener('click', handleSingleAdd);
+
+  // ---- 區間展開：連續多天同一類別，一次輸入起訖日自動展開 ----
+
+  function handleRangeAdd(){
+    var raw = rangeInput.value.trim();
+    if(!raw){
+      flashError(rangeInput);
+      return;
+    }
+
+    var parts = raw.split('-');
+    if(parts.length !== 2 || !isValidDate(parts[0]) || !isValidDate(parts[1])){
+      flashError(rangeInput);
+      showToast('區間格式需為 起日-訖日，例如 1150101-1150110');
+      return;
+    }
+    var result = expandRange(state.currentCat, parts[0], parts[1]);
+    if(!result || !result.ok){
+      flashError(rangeInput);
+      showToast('日期區間無法解析，請確認起訖日正確');
+      return;
+    }
+    if(result.added === 0){
+      flashError(rangeInput);
+      showToast('這段日期在「' + state.currentCat + '」類別下全部重複，未加入任何資料');
+      return;
+    }
+    if(result.skipped > 0){
+      showToast('已加入 ' + result.added + ' 筆，其中 ' + result.skipped + ' 筆日期重複已自動略過');
+    } else {
+      showToast('已展開並加入 ' + result.added + ' 筆');
+    }
+
+    rangeInput.value = '';
+    rangeInput.classList.remove('err');
+    render();
+    rangeInput.focus();
+  }
+
+  rangeAddBtn.addEventListener('click', handleRangeAdd);
+  rangeInput.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      handleRangeAdd();
+    }
+  });
+
+  // ---- 固定年月模式：智慧判斷輸入長度 ----
+  // 打完整日期（7碼，如1150101）→ 自動鎖定/更新年月，同時把這天加入
+  // 打短碼（1~2碼，如02、05）→ 套用目前已鎖定的年月，只需要打天數
+  // 兩種長度可以混在同一次輸入裡用空白分隔，也可以連續不分隔打多個短碼（偶數長度自動每2碼一組）
+
+  function updateLockIndicator(){
+    if(state.lockedYear && state.lockedMonth){
+      lockIndicator.textContent = '目前鎖定：民國 ' + state.lockedYear + ' 年 ' + state.lockedMonth + ' 月';
+      lockIndicator.setAttribute('data-locked', 'true');
+    } else {
+      lockIndicator.textContent = '尚未鎖定年月 ・ 先打一次完整日期（例如 1150101）';
+      lockIndicator.setAttribute('data-locked', 'false');
+    }
+  }
+
+  // 把輸入拆成token：優先用空白/逗號等分隔；沒有分隔符的連續數字，
+  // 7碼當成單一完整日期，其餘偶數長度每2碼切一組（視為天數清單）
+  function parseQuickTokens(raw){
+    raw = raw.trim();
+    if(!raw) return [];
+
+    if(/[\s,，、]/.test(raw)){
+      return raw.split(/[\s,，、]+/).filter(function(t){ return t.length > 0; });
+    }
+    if(/^\d{7}$/.test(raw)){
+      return [raw];
+    }
+    if(/^\d+$/.test(raw) && raw.length % 2 === 0){
+      return raw.match(/.{2}/g) || [];
+    }
+    return [raw];
+  }
+
+  function handleQuickAdd(){
+    var raw = quickDaysInput.value;
+    var tokens = parseQuickTokens(raw);
+
+    if(tokens.length === 0){
+      flashError(quickDaysInput);
+      return;
+    }
+
+    var addedCount = 0;
+    var dupCount = 0;
+    var invalidCount = 0;
+    var lastDupIdx = -1;
+    var lockedThisRound = false;
+
+    tokens.forEach(function(tok){
+      var fullDate = null;
+
+      if(/^\d{7}$/.test(tok)){
+        // 完整日期：拆出年月，更新鎖定狀態
+        var y = tok.slice(0,3);
+        var m = tok.slice(3,5);
+        var d = tok.slice(5,7);
+        var mNum = parseInt(m,10);
+        var dNum = parseInt(d,10);
+        if(mNum < 1 || mNum > 12 || dNum < 1 || dNum > 31){
+          invalidCount++;
+          return;
+        }
+        state.lockedYear = y;
+        state.lockedMonth = m;
+        lockedThisRound = true;
+        fullDate = tok;
+      } else if(/^\d{1,2}$/.test(tok)){
+        // 只有天數：需要已經鎖定年月才能組出完整日期
+        if(!state.lockedYear || !state.lockedMonth){
+          invalidCount++;
+          return;
+        }
+        var dayNum = parseInt(tok,10);
+        if(dayNum < 1 || dayNum > 31){
+          invalidCount++;
+          return;
+        }
+        fullDate = state.lockedYear + state.lockedMonth + String(dayNum).padStart(2,'0');
+      } else {
+        invalidCount++;
+        return;
+      }
+
+      var dupIdx = findDuplicateIndex(state.currentCat, fullDate);
+      if(dupIdx !== -1){
+        dupCount++;
+        lastDupIdx = dupIdx;
+        return;
+      }
+      addSingleDate(state.currentCat, fullDate);
+      addedCount++;
+    });
+
+    if(lockedThisRound) updateLockIndicator();
+
+    if(addedCount === 0 && invalidCount > 0 && !state.lockedYear){
+      flashError(quickDaysInput);
+      showToast('請先打一次完整日期（例如 1150101）鎖定年月');
+      return;
+    }
+    if(addedCount === 0 && dupCount > 0 && invalidCount === 0){
+      flashError(quickDaysInput);
+      showToast('輸入的日期在「' + state.currentCat + '」類別下全部重複');
+      if(lastDupIdx !== -1) highlightEntry(lastDupIdx);
+      return;
+    }
+    if(addedCount === 0 && invalidCount > 0){
+      flashError(quickDaysInput);
+      showToast('日期格式無法辨識');
+      return;
+    }
+
+    var msgParts = ['已加入 ' + addedCount + ' 筆'];
+    if(dupCount > 0) msgParts.push(dupCount + ' 筆重複已略過');
+    if(invalidCount > 0) msgParts.push(invalidCount + ' 筆格式錯誤已略過');
+    showToast(msgParts.join('，'));
+
+    quickDaysInput.value = '';
+    render();
+    quickDaysInput.focus();
+  }
+
+  quickAddBtn.addEventListener('click', handleQuickAdd);
+  quickDaysInput.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      handleQuickAdd();
+    }
+  });
+
+  function removeEntry(idx){
+    state.entries.splice(idx, 1);
+    render();
+  }
+
+  function cycleCat(idx){
+    var entry = state.entries[idx];
+
+    // 住院（A）起訖日可能不同，不能直接切成「同一天」類別，避免資料不一致
+    // 若起訖日本來就相同，允許切；否則請使用者刪除重打
+    if(entry.cat === 'A' && entry.start !== entry.end){
+      showToast('此筆起訖日不同，無法切換為同一天的類別，請刪除後重新輸入');
+      return;
+    }
+
+    var order = ['D','H','J'];
+    var cur = entry.cat;
+    var dateStr = entry.start;
+    if(cur === 'A'){
+      // 起訖日相同的住院筆，允許切入D/H/J其中之一
+      cur = 'D'; // 從D開始找起（含D本身）
+      var clashA = state.entries.some(function(e, i){ return i !== idx && e.cat === 'D' && e.start === dateStr; });
+      if(!clashA){
+        entry.cat = 'D';
+        render();
+        return;
+      }
+    }
+
+    // 依序往下找一個不會造成重複（同類別同日期）的類別，最多試3次（繞一圈）
+    for(var step = 1; step <= order.length; step++){
+      var candidate = order[(order.indexOf(cur) + step) % order.length];
+      var clash = state.entries.some(function(e, i){
+        return i !== idx && e.cat === candidate && e.start === dateStr;
+      });
+      if(!clash){
+        state.entries[idx].cat = candidate;
+        render();
+        return;
+      }
+    }
+    // 三種類別這一天都已存在，無法切換
+    showToast(dateStr + ' 這天三個類別都已存在，無法再切換');
+  }
+
+  function render(){
+    countPill.textContent = state.entries.length + ' 筆';
+
+    if(state.entries.length === 0){
+      entryList.innerHTML = '';
+      entryList.appendChild(emptyState);
+      return;
+    }
+
+    entryList.innerHTML = '';
+    state.entries.forEach(function(entry, idx){
+      var row = document.createElement('div');
+      row.className = 'entry';
+      row.setAttribute('data-idx', idx);
+
+      var catBtn = document.createElement('button');
+      catBtn.className = 'entry-cat';
+      catBtn.setAttribute('data-cat', entry.cat);
+      catBtn.textContent = entry.cat;
+      catBtn.title = '點擊切換類別';
+      catBtn.addEventListener('click', function(){ cycleCat(idx); });
+
+      var dates = document.createElement('div');
+      dates.className = 'entry-dates';
+      dates.innerHTML = entry.start + '<span class="sep">–</span>' + entry.end;
+
+      var del = document.createElement('button');
+      del.className = 'entry-del';
+      del.innerHTML = '&times;';
+      del.title = '刪除這筆';
+      del.addEventListener('click', function(){ removeEntry(idx); });
+
+      row.appendChild(catBtn);
+      row.appendChild(dates);
+      row.appendChild(del);
+      entryList.appendChild(row);
+    });
+  }
+
+  clearBtn.addEventListener('click', function(){
+    if(state.entries.length === 0) return;
+    if(confirm('確定要清空所有 ' + state.entries.length + ' 筆資料嗎？')){
+      state.entries = [];
+      render();
+      showToast('已清空');
+    }
+  });
+
+  copyBtn.addEventListener('click', function(){
+    if(state.entries.length === 0){
+      showToast('目前沒有資料可複製');
+      return;
+    }
+    var lines = state.entries.map(function(e){
+      return e.cat + '\t' + e.start + '\t' + e.end;
+    });
+    var text = lines.join('\n');
+
+    function fallbackCopy(){
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try{ document.execCommand('copy'); }catch(e){}
+      document.body.removeChild(ta);
+    }
+
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){
+        showToast('已複製 ' + state.entries.length + ' 筆到剪貼簿');
+      }).catch(function(){
+        fallbackCopy();
+        showToast('已複製 ' + state.entries.length + ' 筆到剪貼簿');
+      });
+    } else {
+      fallbackCopy();
+      showToast('已複製 ' + state.entries.length + ' 筆到剪貼簿');
+    }
+  });
+
+  // init
+  setCat('D');
+  setMode('single');
+  updateLockIndicator();
+  render();
+})();
+</script>
+</body>
+</html>
