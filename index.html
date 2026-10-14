@@ -89,6 +89,15 @@
     font-size: 13.5px;
     margin-top: 4px;
   }
+  .intro-list{
+    margin-top: 10px;
+    padding-left: 18px;
+    color: var(--ink-soft);
+    font-size: 12.5px;
+    line-height: 1.7;
+  }
+  .intro-list li{ margin-bottom: 3px; }
+  .intro-list b{ color: var(--ink); font-weight: 600; }
 
   .panel{
     background: var(--panel);
@@ -511,7 +520,13 @@
 
   <header>
     <h1>登打輔助工具</h1>
-    <p>固定類別，連續輸入日期，最後整批複製回系統</p>
+    <p>Demo：解決大量 D／H／J 登打時，類別與起迄日需要反覆輸入的問題。</p>
+    <ul class="intro-list">
+      <li><b>一次輸入多個類別</b>：可同時選取兩個類別（如 D＋J），輸入一次日期即同時產生兩筆，省去重複輸入類別與迄日。</li>
+      <li><b>迄日自動帶入</b>：起迄日相同的類別（D／H／J），輸入起日後迄日自動帶入；住院（A）起迄日不一定相同，則分別輸入。</li>
+      <li><b>重複日期自動擋下</b>：同類別、同日期不會被重複加入，避免人工誤輸入。</li>
+      <li><b>一鍵匯出複製</b>：輸入完成的日期可一鍵複製；若未來系統支援自動產生表格，可參考這個做法。</li>
+    </ul>
   </header>
 
   <div class="panel">
