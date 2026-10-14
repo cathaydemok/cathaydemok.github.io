@@ -18,7 +18,7 @@
     --accent: #2F5D4F;
     --accent-ink: #FFFFFF;
     --accent-soft: #E4EDE8;
-    --a-color: #df503b;
+    --a-color: #6B4C7A;
     --d-color: #2F5D4F;
     --h-color: #8A5A2B;
     --j-color: #3C5A8A;
@@ -36,7 +36,7 @@
       --accent: #5B9A82;
       --accent-ink: #0F1512;
       --accent-soft: #223029;
-      --a-color: #df503b;
+      --a-color: #A98BC0;
       --d-color: #6DA78E;
       --h-color: #C68A52;
       --j-color: #7893C4;
@@ -52,7 +52,7 @@
     --accent: #5B9A82;
     --accent-ink: #0F1512;
     --accent-soft: #223029;
-    --a-color: #df503b;
+    --a-color: #A98BC0;
     --d-color: #6DA78E;
     --h-color: #C68A52;
     --j-color: #7893C4;
@@ -133,7 +133,7 @@
     border-color: transparent;
   }
   .cat-btn[data-active="true"] .label{ color: var(--accent-ink); opacity: .85; }
-  .cat-btn[data-cat="A"][data-active="true"]{ background: var(--a-color); }  
+  .cat-btn[data-cat="A"][data-active="true"]{ background: var(--a-color); }
   .cat-btn[data-cat="D"][data-active="true"]{ background: var(--d-color); }
   .cat-btn[data-cat="H"][data-active="true"]{ background: var(--h-color); }
   .cat-btn[data-cat="J"][data-active="true"]{ background: var(--j-color); }
@@ -631,11 +631,9 @@
 <script>
 (function(){
   var CAT_NAMES = { A: '住院', D: '門診', H: '化療', J: '放射' };
-  // 起迄日是否固定相同：A（住院）起訖日可能不同，不自動帶入；D/H/J 規定同一天，自動帶入
-  var SAME_DAY_CATS = { D: true, H: true, J: true, A: false };
 
   var state = {
-    currentCat: 'D',
+    currentCats: ['D'], // 可複選（A除外）：例如 ['D','J'] 代表這個日期要同時產生門診+放射兩筆
     mode: 'single', // 'single' | 'range' | 'quick'
     lockedYear: null,  // 3碼民國年字串，例如 '115'；打過一次完整日期後自動設定
     lockedMonth: null, // 2碼月份字串，例如 '01'
@@ -677,27 +675,58 @@
     }, 1600);
   }
 
-  function setCat(cat){
-    state.currentCat = cat;
+  // 目前是不是處於「起訖日固定相同」的情境：只要選的是A，就不是；只要是D/H/J（不管選幾個）就是
+  function isSameDayMode(){
+    return !state.currentCats.includes('A');
+  }
+
+  function getCatsLabel(){
+    return state.currentCats.map(function(c){ return c + ' ' + CAT_NAMES[c]; }).join('、');
+  }
+
+  function toggleCat(cat){
+    if(cat === 'A'){
+      state.currentCats = ['A'];
+    } else if(state.currentCats.includes('A')){
+      // 從住院切到一般類別：重新開始，只選這一個
+      state.currentCats = [cat];
+    } else if(state.currentCats.includes(cat)){
+      // 已選取 → 再點一次取消，但至少要保留一個類別
+      if(state.currentCats.length === 1){
+        showToast('至少需選擇一個類別');
+        return;
+      }
+      state.currentCats = state.currentCats.filter(function(c){ return c !== cat; });
+    } else {
+      // 加選：例如已選D，再點J，變成同時選D+J
+      state.currentCats = state.currentCats.concat([cat]);
+    }
+    updateCatUI();
+  }
+
+  function updateCatUI(){
     Array.prototype.forEach.call(catRow.querySelectorAll('.cat-btn'), function(btn){
-      btn.setAttribute('data-active', btn.getAttribute('data-cat') === cat ? 'true' : 'false');
+      var isActive = state.currentCats.includes(btn.getAttribute('data-cat'));
+      btn.setAttribute('data-active', isActive ? 'true' : 'false');
     });
 
-    var sameDay = SAME_DAY_CATS[cat];
+    var sameDay = isSameDayMode();
+    var label = getCatsLabel();
 
     if(sameDay){
       endAutoBadge.style.display = '';
       endInput.setAttribute('data-auto', 'true');
-      singleHint.innerHTML = '目前類別：<b>' + cat + ' ' + CAT_NAMES[cat] + '</b> ・ 起迄日相同，打完起日按 <b>Enter</b> 直接加入';
+      singleHint.innerHTML = '目前類別：<b>' + label + '</b> ・ 起迄日相同，打完起日按 <b>Enter</b> 直接加入'
+        + (state.currentCats.length > 1 ? '（會同時產生 ' + state.currentCats.length + ' 筆）' : '');
     } else {
       endAutoBadge.style.display = 'none';
       endInput.removeAttribute('data-auto');
-      singleHint.innerHTML = '目前類別：<b>' + cat + ' ' + CAT_NAMES[cat] + '</b> ・ 起訖日需分別輸入（住院日不一定相同）';
+      singleHint.innerHTML = '目前類別：<b>' + label + '</b> ・ 起訖日需分別輸入（住院日不一定相同）';
     }
 
     // 住院（A）起訖日不固定相同，不適合用「展開/固定年月」這種假設同一天的批次模式
-    // 切到A時強制回到逐筆模式，並停用另外兩個模式按鈕
-    var batchModesAllowed = (cat !== 'A');
+    // 選到A時強制回到逐筆模式，並停用另外兩個模式按鈕
+    var batchModesAllowed = sameDay;
     Array.prototype.forEach.call(modeRow.querySelectorAll('.mode-btn'), function(btn){
       var m = btn.getAttribute('data-mode');
       if(m === 'range' || m === 'quick'){
@@ -712,7 +741,7 @@
   catRow.addEventListener('click', function(e){
     var btn = e.target.closest('.cat-btn');
     if(!btn) return;
-    setCat(btn.getAttribute('data-cat'));
+    toggleCat(btn.getAttribute('data-cat'));
     startInput.focus();
   });
 
@@ -779,7 +808,7 @@
     row.classList.add('flash-dup');
   }
 
-  function expandRange(cat, startStr, endStr){
+  function expandRange(catsArray, startStr, endStr){
     // 嘗試以 民國年(3碼)月(2碼)日(2碼) 解析
     if(startStr.length !== 7 || endStr.length !== 7){
       return false;
@@ -814,13 +843,15 @@
     var addedCount = 0;
     var skippedCount = 0;
     candidates.forEach(function(ds){
-      // 同類別同日期已存在（含這批展開過程中剛加入的）就跳過，避免重複
-      if(findDuplicateIndex(cat, ds) !== -1){
-        skippedCount++;
-        return;
-      }
-      addSingleDate(cat, ds);
-      addedCount++;
+      catsArray.forEach(function(cat){
+        // 同類別同日期已存在（含這批展開過程中剛加入的）就跳過，避免重複
+        if(findDuplicateIndex(cat, ds) !== -1){
+          skippedCount++;
+          return;
+        }
+        addSingleDate(cat, ds);
+        addedCount++;
+      });
     });
 
     return { ok: true, added: addedCount, skipped: skippedCount };
@@ -849,15 +880,30 @@
       return;
     }
 
-    var dupIdx = findDuplicateIndex(state.currentCat, startRaw);
-    if(dupIdx !== -1){
+    var addedCount = 0;
+    var dupCount = 0;
+    var lastDupIdx = -1;
+
+    state.currentCats.forEach(function(cat){
+      var dupIdx = findDuplicateIndex(cat, startRaw);
+      if(dupIdx !== -1){
+        dupCount++;
+        lastDupIdx = dupIdx;
+        return;
+      }
+      addEntry(cat, startRaw, endRaw);
+      addedCount++;
+    });
+
+    if(addedCount === 0){
       flashError(startInput);
-      showToast('「' + state.currentCat + ' ' + startRaw + '」已經加入過了，不能重複');
-      highlightEntry(dupIdx);
+      showToast('「' + startRaw + '」在所選類別下都已經加入過了');
+      if(lastDupIdx !== -1) highlightEntry(lastDupIdx);
       return;
     }
-
-    addEntry(state.currentCat, startRaw, endRaw);
+    if(dupCount > 0){
+      showToast('已加入 ' + addedCount + ' 筆，' + dupCount + ' 筆重複已略過');
+    }
 
     startInput.value = '';
     endInput.value = '';
@@ -869,7 +915,7 @@
 
   // D/H/J 規定起迄日相同：打起日的當下即時帶入迄日
   startInput.addEventListener('input', function(){
-    if(SAME_DAY_CATS[state.currentCat]){
+    if(isSameDayMode()){
       endInput.value = startInput.value;
     }
   });
@@ -877,7 +923,7 @@
   startInput.addEventListener('keydown', function(e){
     if(e.key !== 'Enter') return;
     e.preventDefault();
-    if(SAME_DAY_CATS[state.currentCat]){
+    if(isSameDayMode()){
       // 迄日已自動帶入，直接送出
       handleSingleAdd();
     } else {
@@ -910,7 +956,7 @@
       showToast('區間格式需為 起日-訖日，例如 1150101-1150110');
       return;
     }
-    var result = expandRange(state.currentCat, parts[0], parts[1]);
+    var result = expandRange(state.currentCats, parts[0], parts[1]);
     if(!result || !result.ok){
       flashError(rangeInput);
       showToast('日期區間無法解析，請確認起訖日正確');
@@ -918,7 +964,7 @@
     }
     if(result.added === 0){
       flashError(rangeInput);
-      showToast('這段日期在「' + state.currentCat + '」類別下全部重複，未加入任何資料');
+      showToast('這段日期在「' + getCatsLabel() + '」下全部重複，未加入任何資料');
       return;
     }
     if(result.skipped > 0){
@@ -1024,14 +1070,16 @@
         return;
       }
 
-      var dupIdx = findDuplicateIndex(state.currentCat, fullDate);
-      if(dupIdx !== -1){
-        dupCount++;
-        lastDupIdx = dupIdx;
-        return;
-      }
-      addSingleDate(state.currentCat, fullDate);
-      addedCount++;
+      state.currentCats.forEach(function(cat){
+        var dupIdx = findDuplicateIndex(cat, fullDate);
+        if(dupIdx !== -1){
+          dupCount++;
+          lastDupIdx = dupIdx;
+          return;
+        }
+        addSingleDate(cat, fullDate);
+        addedCount++;
+      });
     });
 
     if(lockedThisRound) updateLockIndicator();
@@ -1043,7 +1091,7 @@
     }
     if(addedCount === 0 && dupCount > 0 && invalidCount === 0){
       flashError(quickDaysInput);
-      showToast('輸入的日期在「' + state.currentCat + '」類別下全部重複');
+      showToast('輸入的日期在「' + getCatsLabel() + '」下全部重複');
       if(lastDupIdx !== -1) highlightEntry(lastDupIdx);
       return;
     }
@@ -1200,7 +1248,7 @@
   });
 
   // init
-  setCat('D');
+  updateCatUI();
   setMode('single');
   updateLockIndicator();
   render();
